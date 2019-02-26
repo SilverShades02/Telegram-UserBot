@@ -1,7 +1,8 @@
-import asyncio
-from telethon import TelegramClient, events
+from asyncio import wait
+
+from telethon import events
+
 from userbot import bot
-from userbot import LOGGER, LOGGER_GROUP
 
 
 @bot.on(events.NewMessage(outgoing=True, pattern="^.spam"))
@@ -11,7 +12,11 @@ async def spammer(e):
         message = e.text
         counter = int(message[6:8])
         spam_message = str(e.text[8:])
-        await asyncio.wait([e.respond(spam_message) for i in range(counter)])
+
+        await wait(
+            [e.respond(spam_message) for i in range(counter)]
+            )
+
         await e.delete()
         await bot.send_message(LOGGER_GROUP, "Spammed successfully")
 
@@ -23,8 +28,10 @@ async def bigspam(e):
         message = e.text
         counter = int(message[9:13])
         spam_message = str(e.text[13:])
+
         for i in range(1, counter):
             await e.respond(spam_message)
+
         await e.delete()
         await bot.send_message(LOGGER_GROUP, "bigspam was successful")
 
@@ -34,10 +41,10 @@ async def bigspam(e):
 async def tiny_pic_spam(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         message = e.text
-        TEXT = message.split()
-        counter = int(TEXT[1])
-        LINK = str(TEXT[2])
+        text = message.split()
+        counter = int(text[1])
+        link = str(text[2])
         for i in range(1, counter):
-            await bot.send_file(e.chat_id, LINK)
+            await bot.send_file(e.chat_id, link)
         await e.delete()
         await bot.send_message(LOGGER_GROUP, "PicSpam was successful")
