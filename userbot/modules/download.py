@@ -1,4 +1,11 @@
-import asyncio
+# Copyright (C) 2019 The Raphielscape Company LLC.
+#
+# Licensed under the Raphielscape Public License, Version 1.b (the "License");
+# you may not use this file except in compliance with the License.
+#
+# The entire source code is OSSRPL except 'download, uploadir, uploadas, upload' which is MPL
+# License: MPL and OSSRPL
+
 import json
 import os
 import subprocess
@@ -7,12 +14,10 @@ from datetime import datetime
 import requests
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
-from PIL import Image
-from telethon import events
-from telethon.errors import MessageNotModifiedError
 from telethon.tl.types import DocumentAttributeVideo
 
-from userbot import LOGS, bot
+from userbot import LOGS, HELPER
+from userbot.events import register
 
 TEMP_DOWNLOAD_DIRECTORY = os.environ.get("TMP_DOWNLOAD_DIRECTORY", "./")
 
@@ -25,8 +30,7 @@ def progress(current, total):
     )
 
 
-@bot.on(events.NewMessage(pattern=r".download ?(.*)", outgoing=True))
-@bot.on(events.MessageEdited(pattern=r".download ?(.*)", outgoing=True))
+@register(pattern=r".download ?(.*)", outgoing=True)
 async def download(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         if e.fwd_from:
@@ -37,7 +41,7 @@ async def download(e):
             os.makedirs(TEMP_DOWNLOAD_DIRECTORY)
         if e.reply_to_msg_id:
             start = datetime.now()
-            downloaded_file_name = await bot.download_media(
+            downloaded_file_name = await e.client.download_media(
                 await e.get_reply_message(),
                 TEMP_DOWNLOAD_DIRECTORY,
                 progress_callback=progress,
@@ -81,7 +85,7 @@ async def download(e):
             await e.edit("Reply to a message to download to my local server.")
 
 
-@bot.on(events.NewMessage(pattern=r".uploadir (.*)", outgoing=True))
+@register(pattern=r".uploadir (.*)", outgoing=True)
 async def _(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         if e.fwd_from:
@@ -103,7 +107,7 @@ async def _(e):
                     # https://stackoverflow.com/a/678242/4723940
                     caption_rts = os.path.basename(single_file)
                     if not caption_rts.lower().endswith(".mp4"):
-                        await bot.send_file(
+                        await e.client.send_file(
                             e.chat_id,
                             single_file,
                             caption=caption_rts,
@@ -124,7 +128,7 @@ async def _(e):
                             width = metadata.get("width")
                         if metadata.has("height"):
                             height = metadata.get("height")
-                        await bot.send_file(
+                        await e.client.send_file(
                             e.chat_id,
                             single_file,
                             caption=caption_rts,
@@ -152,8 +156,7 @@ async def _(e):
             await e.edit("404: Directory Not Found")
 
 
-@bot.on(events.NewMessage(pattern=r".upload (.*)", outgoing=True))
-@bot.on(events.MessageEdited(pattern=r".upload (.*)", outgoing=True))
+@register(pattern=r".upload (.*)", outgoing=True)
 async def _(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         if e.fwd_from:
@@ -168,7 +171,7 @@ async def _(e):
             return
         if os.path.exists(input_str):
             start = datetime.now()
-            await bot.send_file(
+            await e.client.send_file(
                 e.chat_id,
                 input_str,
                 force_document=True,
@@ -231,7 +234,7 @@ def extract_w_h(file):
         return width, height
 
 
-@bot.on(events.NewMessage(pattern=r".uploadas(stream|vn|all) (.*)", outgoing=True))
+@register(pattern=r".uploadas(stream|vn|all) (.*)", outgoing=True)
 async def _(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         if e.fwd_from:
@@ -272,7 +275,7 @@ async def _(e):
                 height = metadata.get("height")
             try:
                 if supports_streaming:
-                    await bot.send_file(
+                    await e.client.send_file(
                         e.chat_id,
                         file_name,
                         thumb=thumb,
@@ -292,7 +295,7 @@ async def _(e):
                         progress_callback=progress,
                     )
                 elif round_message:
-                    await bot.send_file(
+                    await e.client.send_file(
                         e.chat_id,
                         file_name,
                         thumb=thumb,
@@ -317,7 +320,14 @@ async def _(e):
                 ms = (end - start).seconds
                 os.remove(thumb)
                 await e.edit("Uploaded in {} seconds.".format(ms))
-            except FileNotFoundError as e:
-                await e.edit(str(e))
+            except FileNotFoundError as err:
+                await e.edit(str(err))
         else:
             await e.edit("404: File Not Found")
+
+HELPER.update({
+    "download": "Usage: \nDownload file from link to the server."
+})
+HELPER.update({
+    "upload": "Usage: \nUploads a locally stored file to telegram."
+})

@@ -1,12 +1,18 @@
+# Copyright (C) 2019 The Raphielscape Company LLC.
+#
+# Licensed under the Raphielscape Public License, Version 1.b (the "License");
+# you may not use this file except in compliance with the License.
+#
+
 import time
 
-from telethon import events
 from telethon.events import StopPropagation
 
-from userbot import (AFKREASON, COUNT_MSG, ISAFK, LOGGER, LOGGER_GROUP, USERS,
-                     bot)
+from userbot import (AFKREASON, COUNT_MSG, ISAFK, LOGGER, LOGGER_GROUP, USERS, HELPER)
+from userbot.events import register
 
-@bot.on(events.NewMessage(incoming=True))
+
+@register(incoming=True)
 async def mention_afk(e):
     global COUNT_MSG
     global USERS
@@ -37,7 +43,7 @@ async def mention_afk(e):
                     COUNT_MSG = COUNT_MSG + 1
 
 
-@bot.on(events.NewMessage(incoming=True))
+@register(incoming=True)
 async def afk_on_pm(e):
     global ISAFK
     global USERS
@@ -68,74 +74,26 @@ async def afk_on_pm(e):
                     COUNT_MSG = COUNT_MSG + 1
 
 
-@bot.on(events.NewMessage(outgoing=True, pattern="^.notafk$"))
-@bot.on(events.MessageEdited(outgoing=True, pattern="^.notafk$"))
-async def not_afk(e):
-    if not e.text[0].isalpha():
-        global ISAFK
-        global COUNT_MSG
-        global USERS
-        global AFKREASON
-        ISAFK = False
-        await e.edit("I'm no longer AFK.")
-        x=await e.respond(
-            "`You recieved "
-            + str(COUNT_MSG)
-            + " messages while you were away. Check log for more details.`"
-            + "`This auto-generated message shall be self destructed in 2 seconds.`"
-        )
-        time.sleep(2)
-        await x.delete()
-        if LOGGER:
-            await bot.send_message(
-                LOGGER_GROUP,
-                "You've recieved "
-                + str(COUNT_MSG)
-                + " messages from "
-                + str(len(USERS))
-                + " chats while you were away",
-            )
-            for i in USERS:
-                name = await bot.get_entity(i)
-                name0 = str(name.first_name)
-                await bot.send_message(
-                    LOGGER_GROUP,
-                    "["
-                    + name0
-                    + "](tg://user?id="
-                    + str(i)
-                    + ")"
-                    + " sent you "
-                    + "`"
-                    + str(USERS[i])
-                    + " messages`",
-                )
-        COUNT_MSG = 0
-        USERS = {}
-        AFKREASON = "No Reason"
-
-
-@bot.on(events.NewMessage(outgoing=True, pattern="^.afk"))
-@bot.on(events.MessageEdited(outgoing=True, pattern="^.afk"))
+@register(outgoing=True, pattern="^.afk")
 async def set_afk(e):
     if not e.text[0].isalpha() and e.text[0] not in ("/", "#", "@", "!"):
         message = e.text
         try:
             string = str(message[5:])
         except:
-            string=''
+            string = ''
         global ISAFK
         global AFKREASON
         await e.edit("AFK AF!")
         if string != "":
             AFKREASON = string
-        await bot.send_message(LOGGER_GROUP, "You went AFK!")
+        if LOGGER:
+            await e.client.send_message(LOGGER_GROUP, "You went AFK!")
         ISAFK = True
         raise StopPropagation
 
 
-@bot.on(events.NewMessage(outgoing=True))
-@bot.on(events.MessageEdited(outgoing=True))
+@register(outgoing=True)
 async def type_afk_is_not_true(e):
     global ISAFK
     global COUNT_MSG
@@ -153,7 +111,7 @@ async def type_afk_is_not_true(e):
         time.sleep(2)
         await x.delete()
         if LOGGER:
-            await bot.send_message(
+            await e.client.send_message(
                 LOGGER_GROUP,
                 "You've recieved "
                 + str(COUNT_MSG)
@@ -162,9 +120,9 @@ async def type_afk_is_not_true(e):
                 + " chats while you were away",
             )
             for i in USERS:
-                name = await bot.get_entity(i)
+                name = await e.client.get_entity(i)
                 name0 = str(name.first_name)
-                await bot.send_message(
+                await e.client.send_message(
                     LOGGER_GROUP,
                     "["
                     + name0
@@ -179,3 +137,7 @@ async def type_afk_is_not_true(e):
         COUNT_MSG = 0
         USERS = {}
         AFKREASON = "No Reason"
+
+HELPER.update({
+    "afk": "Usage: \nSets you as afk. Responds to anyone who tags/PM's you telling that you are afk. Switches off AFK when you type back anything."
+})
